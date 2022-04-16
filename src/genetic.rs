@@ -1,5 +1,4 @@
 use std::collections::{HashMap, HashSet};
-use crate::Error;
 use ndarray::{ArrayBase, OwnedRepr, Dim};
 use rand::prelude::*;
 use crate::{generation::Generation, generation::Chromosome, cluster::Clustering};
@@ -8,7 +7,7 @@ pub struct Genetic {
     pub num_of_ind: i64,
     pub pclo: f64,
     pub budget: i64,
-    pub data: Result<ArrayBase<OwnedRepr<u32>, Dim<[usize; 2]>>, Box<dyn Error>>,
+    pub data: ArrayBase<OwnedRepr<u32>, Dim<[usize; 2]>>,
     pub generationCount: i64,
     pub kmax: usize,
     pub dim: usize,
@@ -277,15 +276,15 @@ impl Genetic {
         return stream;
     }
 
-    fn healthImprovement(&mut self, stream: &Vec<Chromosome>, generation: Generation, deterministic: Vec<Chromosome>) -> &Vec<Chromosome> {
+    fn healthImprovement<'a>(&mut self, stream: &'a Vec<Chromosome>, generation: Generation, deterministic: Vec<Chromosome>) -> &'a Vec<Chromosome> {
         let num_of_ind = self.num_of_ind;
-        let twentyPercent = Vec::new();
+        let twentyPercent = &Vec::new();
 
         for i in 0..(num_of_ind as f32 * 0.2) as usize {
             twentyPercent.push(stream[i]);
         }
 
-        twentyPercent = self.crossover(&twentyPercent, generation);
+        twentyPercent = self.crossover(twentyPercent, generation);
         let thirtyPercent = Vec::new();
 
         for i in 0..(num_of_ind as f64 * 0.3) as usize {
@@ -347,15 +346,16 @@ impl Genetic {
         mx: f64,
         mr: f64,
         deterministic: Vec<Chromosome>,
-    ) {
-        if chromosome.length >= mn as u16 || chromosome.length <= mx as u16 || chromosome.length > mr as u16 {
-            continue;
+    ) -> Chromosome {
+        if !(chromosome.length >= mn as u16) || !(chromosome.length <= mx as u16) || !(chromosome.length > mr as u16) {
+            let new_chromosome = self.cloning(&chromosome, deterministic);
+            return new_chromosome;
         } else {
-            self.cloning(&chromosome, deterministic);
+            return chromosome;
         }
     }
 
-    fn cloning(&mut self, sickChromosome: &Chromosome, deterministic: Vec<Chromosome>) {
+    fn cloning<'a>(&mut self, sickChromosome: &'a Chromosome, deterministic: Vec<Chromosome>) -> &'a Chromosome {
         let pclo = self.pclo;
         let die = rand::thread_rng().gen_range(0.0..1.0);
 
@@ -364,6 +364,9 @@ impl Genetic {
             let idx = sickChromosome.genes.iter().position(|r| r == sickChromosome.genes.choose(&mut rand::thread_rng()).unwrap()).unwrap();
             sickChromosome.genes[idx] = rand::thread_rng().gen_range(0.0..1.0);
             let chromosome = sickChromosome;
+            return chromosome;
+        } else {
+            return sickChromosome;
         }
     }
 

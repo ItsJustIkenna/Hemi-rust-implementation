@@ -33,7 +33,7 @@ fn read_csv(path_to_file: &str) -> Result<Array2<u32>, Box<dyn Error>> {
 
 fn main() {
     let config_file = "config.ini";
-    let _data = read_csv("basket_1h.csv");
+    let _data = read_csv("basket_1h.csv").unwrap();
     let _dim: usize = 6;
     let _generation_count = 0;
     let (_budget, _streams, _num_of_ind, _pclo) = read_vars(config_file);

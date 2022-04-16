@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use crate::Error;
 use ndarray::{ArrayBase, OwnedRepr, Dim};
 use rand::prelude::*;
 
@@ -27,7 +26,7 @@ pub struct Generation<> {
     pub streamChromosomes: Vec<Chromosome>,
     pub chromosomes: HashMap<i64, Vec<Chromosome>>,
     pub generationCount: i64,
-    pub data: Result<ArrayBase<OwnedRepr<u32>, Dim<[usize; 2]>>, Box<dyn Error>>,
+    pub data: ArrayBase<OwnedRepr<u32>, Dim<[usize; 2]>>,
     pub k: Vec<u16>,
     pub streams: i64,
     pub dim: usize,

@@ -1,4 +1,3 @@
-use std:: error::Error;
 use ndarray::{Array, OwnedRepr, Dim, ArrayBase};
 use rand::Rng;
 
@@ -49,7 +48,7 @@ impl Cluster {
 
 pub struct Clustering {
     pub generation: Generation,
-    pub data: Result<ArrayBase<OwnedRepr<u32>, Dim<[usize; 2]>>, Box<dyn Error>>,
+    pub data: ArrayBase<OwnedRepr<u32>, Dim<[usize; 2]>>,
     pub dim: usize,
     pub kmax: usize,
 }
@@ -143,7 +142,7 @@ impl Clustering {
         return self.generation;
     }
 
-    pub fn calcChildFit(&mut self, childChromosome: Chromosome) {
+    pub fn calcChildFit(&mut self, childChromosome: Chromosome) -> Chromosome {
         let kmax = self.kmax;
         let dim = self.dim;
         let clusters = Vec::new();
@@ -179,19 +178,21 @@ impl Clustering {
         let dbindex = self.daviesBouldin(clusters);
 
         childChromosome.fitness = 1.0 / dbindex;
+
+        return childChromosome;
     }
 
-    fn calcDistance(&mut self, clusters: Vec<Cluster>) {
+    fn calcDistance(&mut self, clusters: Vec<Cluster>) -> Vec<Cluster>{
         let kmax = self.kmax;
         let dim = self.dim;
         let data = self.data;
         let dis = 0;
 
-        for z in 0..640992 {
+        for row in data.genrows() {
             let point = Point {
                 length: dim as u8,
-                pattern_id: data[z][0..dim],
-                z: z,
+                pattern_id: row,
+                z: ,
             };
 
             let disSet = Vec::new();
@@ -203,6 +204,8 @@ impl Clustering {
 
             clusters = self.findMin(disSet, clusters, point);
         }
+
+        return clusters;
     }
 
     fn minkowskiDistance(&mut self, point1: Point, point2: Point) -> f32 {
