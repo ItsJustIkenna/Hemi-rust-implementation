@@ -346,12 +346,12 @@ impl Genetic {
         mx: f64,
         mr: f64,
         deterministic: Vec<Chromosome>,
-    ) -> Chromosome {
+    ) -> &Chromosome {
         if !(chromosome.length >= mn as u16) || !(chromosome.length <= mx as u16) || !(chromosome.length > mr as u16) {
             let new_chromosome = self.cloning(&chromosome, deterministic);
             return new_chromosome;
         } else {
-            return chromosome;
+            return &chromosome;
         }
     }
 
