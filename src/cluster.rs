@@ -13,7 +13,7 @@ struct Point {
 
 impl Point {
     fn __str__(&mut self) {
-        let s: String = self.pattern_id.into_iter().map(|d| std::char::from_digit(d, 10).unwrap()).collect();
+        let s = format!("{:?}", self.pattern_id);
     }
 
     fn toJSON(&mut self) {

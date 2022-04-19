@@ -209,16 +209,16 @@ impl Genetic {
         return stream;
     }
 
-    fn twinRemoval(&mut self, stream: &Vec<Chromosome>) -> &Vec<Chromosome> {
+    fn twinRemoval<'a>(&mut self, stream: &'a Vec<Chromosome>) -> &'a Vec<Chromosome> {
         let gene;
         for i in 0..stream.len() {
             gene = self.checkForIdenticalGenes(stream[i]);
 
             if stream[i].length > self.dim as u16 || gene != either::Right(false) {
-                let idx = stream[i].genes.iter().position(|r| r == &gene).unwrap();
+                let idx = stream[i].genes.iter().position(|r| r == &gene.unwrap_left()).unwrap();
                 stream[i].genes.remove(idx);
             } else if stream[i].length == self.dim as u16|| gene != either::Right(false) {
-                let idx = stream[i].genes.iter().position(|r| r == &gene).unwrap();
+                let idx = stream[i].genes.iter().position(|r| r == &gene.unwrap_left()).unwrap();
                 stream[i].genes[idx] = OrderedFloat(rand::thread_rng().gen_range(0.0..1.0));
             }
         }
