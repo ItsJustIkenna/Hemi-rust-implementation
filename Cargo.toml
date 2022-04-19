@@ -13,4 +13,6 @@ csv = "1.1.6"
 serde = { version = "1", features = ["derive"] }
 configparser = "3.0.0"
 rand = "0.8.4"
+either = "1.6.1"
+ordered-float = "2.10.0"
 json = "0.12.4"

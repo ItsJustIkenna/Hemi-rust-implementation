@@ -1,4 +1,5 @@
 use ndarray::{Array, OwnedRepr, Dim, ArrayBase};
+use ordered_float::OrderedFloat;
 use rand::Rng;
 
 use crate::generation::{Generation, Chromosome};
@@ -6,7 +7,7 @@ use crate::generation::{Generation, Chromosome};
 #[derive(Debug)]
 struct Point {
     length: u8,
-    pattern_id: Vec<f32>,
+    pattern_id: Vec<OrderedFloat<f32>>,
     z: usize,
 }
 
