@@ -1,10 +1,9 @@
 use std::collections::HashMap;
-use ndarray::{ArrayBase, OwnedRepr, Dim};
-use ordered_float::OrderedFloat;
 use rand::prelude::*;
+use sprs::CsVecBase;
 
 pub struct Chromosome {
-    pub genes: Vec<OrderedFloat<f32>>,
+    pub genes: Vec<f32>,
     pub length: u16,
     pub fitness: f64,
     pub mj: f32,
@@ -13,7 +12,7 @@ pub struct Chromosome {
 impl Chromosome {
     pub fn randomGenerateChromosome(&mut self) {
         for i in 0..self.length {
-            let gene = OrderedFloat(rand::thread_rng().gen_range(0.0..1.0));
+            let gene = rand::thread_rng().gen_range(0.0..1.0);
             self.genes.push(gene);
         }
     }
@@ -27,7 +26,7 @@ pub struct Generation<> {
     pub streamChromosomes: Vec<Chromosome>,
     pub chromosomes: HashMap<i64, Vec<Chromosome>>,
     pub generationCount: i64,
-    pub data: ArrayBase<OwnedRepr<u32>, Dim<[usize; 2]>>,
+    pub data: CsVecBase<Vec<usize>, Vec<Vec<f32>>, Vec<f32>>,
     pub k: Vec<u16>,
     pub streams: i64,
     pub dim: usize,

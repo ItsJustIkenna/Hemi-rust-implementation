@@ -1,13 +1,13 @@
-use ndarray::{Array, OwnedRepr, Dim, ArrayBase};
-use ordered_float::OrderedFloat;
+use ndarray::Array;
 use rand::Rng;
+use sprs::CsVecBase;
 
 use crate::generation::{Generation, Chromosome};
 
 #[derive(Debug)]
 struct Point {
     length: u8,
-    pattern_id: Vec<OrderedFloat<f32>>,
+    pattern_id: Vec<f32>,
     z: usize,
 }
 
@@ -49,7 +49,7 @@ impl Cluster {
 
 pub struct Clustering {
     pub generation: Generation,
-    pub data: ArrayBase<OwnedRepr<u32>, Dim<[usize; 2]>>,
+    pub data: CsVecBase<Vec<usize>, Vec<Vec<f32>>, Vec<f32>>,
     pub dim: usize,
     pub kmax: usize,
 }
@@ -189,11 +189,11 @@ impl Clustering {
         let data = self.data;
         let dis = 0;
 
-        for row in data.genrows() {
+        for z in data.indices() {
             let point = Point {
                 length: dim as u8,
-                pattern_id: row,
-                z: ,
+                pattern_id: *data.get(*z).unwrap(),
+                z: *z,
             };
 
             let disSet = Vec::new();
