@@ -2,38 +2,39 @@ use std::collections::HashMap;
 use rand::prelude::*;
 use sprs::CsVecBase;
 
+#[derive(Clone)]
 pub struct Chromosome {
     pub genes: Vec<f32>,
-    pub length: u16,
-    pub fitness: f64,
+    pub length: usize,
+    pub fitness: f32,
     pub mj: f32,
 }
 
 impl Chromosome {
     pub fn randomGenerateChromosome(&mut self) {
-        for i in 0..self.length {
+        for _ in 0..self.length {
             let gene = rand::thread_rng().gen_range(0.0..1.0);
             self.genes.push(gene);
         }
     }
 }
 
-
-pub struct Generation<> {
-    pub num_of_ind: i64,
-    pub deterministic: HashMap<i64, Vec<Chromosome>>,
+#[derive(Clone)]
+pub struct Generation<'a> {
+    pub num_of_ind: usize,
+    pub deterministic: HashMap<usize, &'a Vec<&'a Chromosome>>,
     pub random: Vec<Chromosome>,
     pub streamChromosomes: Vec<Chromosome>,
-    pub chromosomes: HashMap<i64, Vec<Chromosome>>,
-    pub generationCount: i64,
+    pub chromosomes: HashMap<usize, Vec<&'a Chromosome>>,
+    pub generationCount: usize,
     pub data: CsVecBase<Vec<usize>, Vec<Vec<f32>>, Vec<f32>>,
-    pub k: Vec<u16>,
-    pub streams: i64,
+    pub k: Vec<usize>,
+    pub streams: usize,
     pub dim: usize,
 }
 
-impl Generation {
-    pub fn sortChromosomes(&mut self) -> HashMap<i64, Vec<Chromosome>> {
+impl Generation<'_> {
+    pub fn sortChromosomes(&mut self) -> HashMap<usize, Vec<&Chromosome>> {
         for streamOfChromosome in self.chromosomes.values() {
             streamOfChromosome.sort_by(|a, b| b.fitness.partial_cmp(&a.fitness).unwrap());
         }
@@ -51,9 +52,9 @@ impl Generation {
 
             for k in self.dim..chromosomes_from_individual_phase {
                 for _ in 0..5 {
-                    let mut chromosome = Chromosome {
+                    let mut chromosome = &Chromosome {
                         genes: Vec::new(),
-                        length: k as u16,
+                        length: k,
                         fitness: 0.0,
                         mj: 0.0,
                     };
@@ -62,15 +63,15 @@ impl Generation {
                 }
             }
 
-            for i in 0..deterministic.len() {
+            for _ in 0..deterministic.len() {
                 let n: f32 = 640992.0;
                 let k = rand::thread_rng().gen_range(self.dim..(n.sqrt() as usize));
-                self.k.push((k as u8).into());
+                self.k.push(k);
             }
 
-            for i in 0..deterministic.len() {
+            for _ in 0..deterministic.len() {
                 let k = self.k.choose(&mut rand::thread_rng());
-                let mut chromosome = Chromosome {
+                let mut chromosome = &Chromosome {
                     genes: Vec::new(),
                     length: *k.unwrap(),
                     fitness: 0.0,
@@ -80,7 +81,7 @@ impl Generation {
                 random.push(chromosome);
             }
 
-            self.deterministic.insert(s, deterministic);
+            self.deterministic.insert(s, &deterministic);
 
             for i in 0..chromosomes_from_individual_phase {
                 stream_chromosomes.push(deterministic[i]);
@@ -91,7 +92,7 @@ impl Generation {
         }
     }
 
-    pub fn getBestChromosome(&mut self) -> Chromosome {
+    pub fn getBestChromosome(&mut self) -> &Chromosome {
         let bestChromosomeInStream = Vec::new();
 
         for stream in self.chromosomes.values() {

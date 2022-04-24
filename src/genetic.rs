@@ -1,26 +1,22 @@
-use std::collections::{HashMap, HashSet};
-use either::*;
+use std::collections::HashMap;
 use rand::prelude::*;
 use sprs::CsVecBase;
 use crate::{generation::Generation, generation::Chromosome, cluster::Clustering};
 
-pub struct Genetic {
-    pub num_of_ind: i64,
+#[derive(Clone)]
+pub struct Genetic<'a> {
+    pub num_of_ind: usize,
     pub pclo: f64,
-    pub budget: i64,
+    pub budget: usize,
     pub data: CsVecBase<Vec<usize>, Vec<Vec<f32>>, Vec<f32>>,
-    pub generationCount: i64,
+    pub generationCount: usize,
     pub kmax: usize,
     pub dim: usize,
-    pub prevGeneration: HashMap<i64, Vec<Chromosome>>,
+    pub prevGeneration: HashMap<usize, Vec<&'a Chromosome>>,
 }
 
-struct Gene {
-    float: f32,
-}
-
-impl Genetic {
-    pub fn geneticProcess(&mut self, generation: Generation, deterministic: HashMap<i64, Vec<Chromosome>>) -> (Generation, i64) {
+impl Genetic<'_> {
+    pub fn geneticProcess<'a>(&mut self, mut generation: &'a Generation, deterministic: &'a HashMap<usize, &Vec<&Chromosome>>) -> (&'a Generation, usize) {
         println!("------------Generation: {} -----------------", self.generationCount);
 
         //  ----------------------------------Information Sharing-----------------------
@@ -29,13 +25,13 @@ impl Genetic {
             generation = self.informationSharing(generation);
         }
 
-        let s = 0;
+        let mut s:usize = 0;
 
         for stream in generation.chromosomes.values() {
             //  ------------------------------Simple noise based selection--------------
 
             if self.generationCount > 0 {
-                stream = &self.selection(*stream, self.prevGeneration[&s]);
+                stream = &self.selection(stream, &self.prevGeneration[&s]);
             }
             else {
                 continue;
@@ -43,28 +39,28 @@ impl Genetic {
 
             //  ------------------------------Crossover---------------------------------
 
-            stream = &self.crossover(*stream, generation);
+            stream = self.crossover(stream, generation);
 
             //  ------------------------------Twin Removal------------------------------
 
-            stream = &self.twinRemoval(*stream);
+            stream = self.twinRemoval(stream);
 
             //  ------------------------------Mutation----------------------------------
 
-            stream = &self.mutation(*stream);
+            stream = self.mutation(stream);
 
             //  ------------------------------Health Improvement------------------------
 
-            stream = &self.healthImprovement(*stream, generation, deterministic[&s]);
+            stream = self.healthImprovement(stream, generation, deterministic[&s]);
             
             //  ------------------------------Cleansing---------------------------------
 
-            stream = &self.cleansing(*stream, deterministic[&s]);
+            stream = self.cleansing(stream, deterministic[&s]);
 
             //  ------------------------------Elitist-----------------------------------
 
             if self.generationCount > 0 {
-                stream = &self.elitist(*stream, self.prevGeneration[&s]);
+                stream = &self.elitist(stream, &self.prevGeneration[&s]);
             }
             else {
                 continue;
@@ -81,28 +77,28 @@ impl Genetic {
         
     }
 
-    fn informationSharing(&mut self, generation: Generation) -> Generation {
+    fn informationSharing<'a>(&mut self, generation: &'a Generation) -> &'a Generation {
         let neighbors = Vec::new();
 
-        for i in 0..generation.chromosomes.len() as i64 {
+        for i in 0..generation.chromosomes.len() {
             let chromo = generation.chromosomes[&i];
-            let bestChromo = chromo[i as usize];
+            let bestChromo = chromo[0];
             neighbors.push(bestChromo);
         }
 
-        for i in 0..generation.chromosomes.len() as i64 {
-            let chromo = generation.chromosomes[&i].last().unwrap();
-            chromo = &self.maxOfNeighbors(neighbors, i);
+        for i in 0..generation.chromosomes.len() {
+            let chromo = *generation.chromosomes[&i].last().unwrap();
+            chromo = self.maxOfNeighbors(&neighbors, i);
         }
 
         return generation;
     }
 
-    fn maxOfNeighbors(&mut self, neighbors: Vec<Chromosome>, i: i64) -> Chromosome {
-        let d = neighbors.len() - i as usize;
+    fn maxOfNeighbors<'a>(&mut self, neighbors: &'a Vec<&Chromosome>, i: usize) -> &'a Chromosome {
+        let d = neighbors.len() - i;
         let p1: usize;
         if d >= 2 {
-            p1 = i as usize;
+            p1 = i;
         } else {
             p1 = neighbors.len() - 3;
         }
@@ -119,14 +115,14 @@ impl Genetic {
         return max_chromosome;
     }
 
-    fn selection(&mut self, stream: Vec<Chromosome>, prevStream: Vec<Chromosome>) -> Vec<Chromosome> {
-        let num_of_ind = self.num_of_ind as usize;
+    fn selection<'a>(&mut self, stream: &Vec<&Chromosome>, prevStream: &Vec<&Chromosome>) -> &Vec<&Chromosome> {
+        let num_of_ind = self.num_of_ind;
         let noise = rand::thread_rng().gen_range(0.0..1.0);
 
         for j in 0..num_of_ind {
             if prevStream[j].fitness > stream[j].fitness {
                 if prevStream[j].fitness > (stream[j].fitness + noise) {
-                    stream[j] = prevStream[j]
+                    stream[j] = &prevStream[j]
                 }
             }
         }
@@ -134,7 +130,7 @@ impl Genetic {
         return stream;
     }
 
-    fn crossover(&mut self, stream: Vec<Chromosome>, generation: Generation) -> Vec<Chromosome> {
+    fn crossover<'a>(&mut self, stream: &Vec<&Chromosome>, generation: &Generation) -> &Vec<&Chromosome> {
         let dad = stream[0];
         let Fsum = 0.0;
 
@@ -151,20 +147,20 @@ impl Genetic {
 
                 let cut: usize;
                 if dad.length < mom.length {
-                    cut = rand::thread_rng().gen_range(1..(dad.length - 1)) as usize;
+                    cut = rand::thread_rng().gen_range(1..(dad.length - 1));
                 } else {
-                    cut = rand::thread_rng().gen_range(1..(mom.length - 1)) as usize;
+                    cut = rand::thread_rng().gen_range(1..(mom.length - 1));
                 }
 
                 let genesChild1 = Vec::new();
                 for i in 0..cut {
                     genesChild1.push(dad.genes[i]);
                 }
-                for i in cut..((mom.length - 1) as usize) {
+                for i in cut..((mom.length - 1)) {
                     genesChild1.push(mom.genes[i]);
                 }
 
-                while genesChild1.len() < self.dim as usize {
+                while genesChild1.len() < self.dim {
                     genesChild1.push(rand::thread_rng().gen_range(0.0..1.0));
                 }
 
@@ -172,37 +168,37 @@ impl Genetic {
                 for i in 0..cut {
                     genesChild2.push(mom.genes[i]);
                 }
-                for i in cut..((dad.length - 1) as usize) {
+                for i in cut..((dad.length - 1)) {
                     genesChild2.push(dad.genes[i]);
                 }
 
-                while genesChild2.len() < self.dim as usize {
+                while genesChild2.len() < self.dim {
                     genesChild2.push(rand::thread_rng().gen_range(0.0..1.0));
                 }
 
                 let child1 = Chromosome {
                     genes: genesChild1,
-                    length: genesChild1.len() as u16,
+                    length: genesChild1.len(),
                     fitness: 0.0,
                     mj: 0.0,
                 };
 
                 let child2 = Chromosome {
                     genes: genesChild2,
-                    length: genesChild2.len() as u16,
+                    length: genesChild2.len(),
                     fitness: 0.0,
                     mj: 0.0,
                 };
 
-                let clustering = Clustering{ generation: generation, data: self.data, dim: self.dim, kmax: self.kmax };
+                let clustering = Clustering{ generation: *generation, data: self.data, dim: self.dim, kmax: self.kmax };
                 child1 = clustering.calcChildFit(child1);
                 child2 = clustering.calcChildFit(child2);
 
                 let family = Vec::new();
                 family.push(dad);
                 family.push(mom);
-                family.push(child1);
-                family.push(child2);
+                family.push(&child1);
+                family.push(&child2);
 
                 family.sort_by(|a, b| b.fitness.partial_cmp(&a.fitness).unwrap());
                 stream[0] = family[0];
@@ -212,37 +208,17 @@ impl Genetic {
         return stream;
     }
 
-    fn twinRemoval(&mut self, stream: Vec<Chromosome>) -> Vec<Chromosome> {
-        let gene;
+    fn twinRemoval<'a>(&mut self, stream: &'a Vec<&Chromosome>) -> &Vec<&Chromosome> {
+    
         for i in 0..stream.len() {
-            gene = self.checkForIdenticalGenes(stream[i]);
-
-            if stream[i].length > self.dim as u16 || gene != either::Right(false) {
-                let idx = stream[i].genes.iter().position(|r| r == &gene.unwrap_left()).unwrap();
-                stream[i].genes.remove(idx);
-            } else if stream[i].length == self.dim as u16|| gene != either::Right(false) {
-                let idx = stream[i].genes.iter().position(|r| r == &gene.unwrap_left()).unwrap();
-                stream[i].genes[idx] = rand::thread_rng().gen_range(0.0..1.0);
-            }
+            
         }
 
         return stream;
 
     }
 
-    fn checkForIdenticalGenes(&mut self, chromosome: Chromosome) -> Either<f32, bool> {
-        let mut setOfGenes = HashSet::new();
-        for gene in chromosome.genes {
-            if setOfGenes.contains(&gene) {
-                return Left(gene);
-            } else {
-                setOfGenes.insert(gene);
-            }
-        }
-        return Right(false);
-    }
-
-    fn mutation(&mut self, stream: Vec<Chromosome>) -> Vec<Chromosome> {
+    fn mutation<'a>(&mut self, stream: &Vec<&Chromosome>) -> &Vec<&Chromosome> {
         let k1 = 0.5;
         let k2 = 0.5;
 
@@ -258,7 +234,7 @@ impl Genetic {
             totalFitness += stream[k].fitness;
         }
 
-        let fave = totalFitness / stream.len() as f64;
+        let fave = totalFitness / stream.len() as f32;
 
         let fj;
         for j in 0..stream.len() {
@@ -282,7 +258,7 @@ impl Genetic {
         return stream;
     }
 
-    fn healthImprovement(&mut self, stream: Vec<Chromosome>, generation: Generation, deterministic: Vec<Chromosome>) -> Vec<Chromosome> {
+    fn healthImprovement<'a>(&mut self, stream: &'a Vec<&Chromosome>, generation: &'a Generation, deterministic: &'a Vec<&Chromosome>) -> &Vec<&Chromosome> {
         let num_of_ind = self.num_of_ind;
         let twentyPercent = Vec::new();
 
@@ -290,7 +266,7 @@ impl Genetic {
             twentyPercent.push(stream[i]);
         }
 
-        twentyPercent = self.crossover(twentyPercent, generation);
+        twentyPercent = self.crossover(&twentyPercent, &generation).to_vec();
         let thirtyPercent = Vec::new();
 
         for i in 0..(num_of_ind as f64 * 0.3) as usize {
@@ -320,13 +296,13 @@ impl Genetic {
         return stream;
     }
 
-    fn cleansing(&mut self, stream: Vec<Chromosome>, deterministic: Vec<Chromosome>) -> Vec<Chromosome> {
-        let num_of_ind = self.num_of_ind as usize;
+    fn cleansing<'a>(&mut self, stream: &'a Vec<&Chromosome>, deterministic: &'a Vec<&Chromosome>) -> &'a Vec<&Chromosome> {
+        let num_of_ind = self.num_of_ind;
 
         let mr: f32;
         for i in 0..num_of_ind {
             if stream[i].length < stream[i - 1].length {
-                mr = stream[i].length.into();
+                mr = stream[i].length as f32;
             }
         }
 
@@ -347,26 +323,26 @@ impl Genetic {
 
     fn doCleansing(
         &mut self,
-        chromosome: Chromosome,
+        chromosome: &Chromosome,
         mn: f32,
         mx: f32,
         mr: f32,
-        deterministic: Vec<Chromosome>,
-    ) -> Chromosome {
-        if !(chromosome.length >= mn as u16) || !(chromosome.length <= mx as u16) || !(chromosome.length > mr as u16) {
-            let new_chromosome = self.cloning(chromosome, deterministic);
+        deterministic: &Vec<&Chromosome>,
+    ) -> &Chromosome {
+        if !((chromosome.length as f32) >= mn) || !((chromosome.length as f32) <= mx) || !((chromosome.length as f32) > +mr) {
+            let new_chromosome = self.cloning(&chromosome, &deterministic);
             return new_chromosome;
         } else {
             return chromosome;
         }
     }
 
-    fn cloning(&mut self, sickChromosome: Chromosome, deterministic: Vec<Chromosome>) -> Chromosome {
+    fn cloning<'a>(&mut self, sickChromosome: &'a Chromosome, deterministic: &'a Vec<&Chromosome>) -> &'a Chromosome {
         let pclo = self.pclo;
         let die = rand::thread_rng().gen_range(0.0..1.0);
 
         if pclo >= die {
-            sickChromosome = *deterministic.choose(&mut rand::thread_rng()).unwrap();
+            sickChromosome = deterministic.choose(&mut rand::thread_rng()).unwrap();
             let idx = sickChromosome.genes.iter().position(|r| r == sickChromosome.genes.choose(&mut rand::thread_rng()).unwrap()).unwrap();
             sickChromosome.genes[idx] = rand::thread_rng().gen_range(0.0..1.0);
             let chromosome = sickChromosome;
@@ -376,18 +352,18 @@ impl Genetic {
         }
     }
 
-    fn elitist(&mut self, stream: Vec<Chromosome>, prevStream: Vec<Chromosome>) -> Vec<Chromosome> {
-        let lastChromo = stream.last().unwrap();
+    fn elitist<'a>(&mut self, stream: &'a Vec<&Chromosome>, prevStream: &'a Vec<&Chromosome>) -> &'a Vec<&Chromosome> {
+        let lastChromo = *stream.last().unwrap();
         let worstFitnessCurrent = lastChromo.fitness;
         let bestFitnessCurrent = stream[0].fitness;
         let bestFitnessAll = prevStream[0].fitness;
 
         if worstFitnessCurrent < bestFitnessAll {
-            worstFitnessCurrent = bestFitnessAll;
+            lastChromo = prevStream[0];
         }
 
         if bestFitnessCurrent > bestFitnessAll {
-            bestFitnessCurrent = bestFitnessAll;
+            stream[0] = prevStream[0];
         }
 
         return stream;

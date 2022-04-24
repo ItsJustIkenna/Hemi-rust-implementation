@@ -6,7 +6,7 @@ use crate::generation::{Generation, Chromosome};
 
 #[derive(Debug)]
 struct Point {
-    length: u8,
+    length: usize,
     pattern_id: Vec<f32>,
     z: usize,
 }
@@ -26,7 +26,7 @@ impl Point {
 }
 
 struct Cluster {
-    dim: u8,
+    dim: usize,
     centroid: Point,
     points: Vec<Point>,
     distances: Vec<f32>,
@@ -34,28 +34,28 @@ struct Cluster {
 
 impl Cluster {
     fn dispersion(&mut self) -> f32 {
-        let t = self.points.len();
+        let t = self.points.len() as f32;
 
         let s = 0.0;
 
         for x in self.distances {
             s += x;
         }
-        s = s / t as f32;
+        s = s / t;
 
         return s;
     }
 }
 
-pub struct Clustering {
-    pub generation: Generation,
+pub struct Clustering<'a> {
+    pub generation: Generation<'a>,
     pub data: CsVecBase<Vec<usize>, Vec<Vec<f32>>, Vec<f32>>,
     pub dim: usize,
     pub kmax: usize,
 }
 
-impl Clustering {
-    fn daviesBouldin(&mut self, clusters: Vec<Cluster>) -> f64 {
+impl Clustering<'_> {
+    fn daviesBouldin(&mut self, clusters: Vec<Cluster>) -> f32 {
         let sigmaR = 0.0;
         let k = clusters.len();
 
@@ -63,12 +63,12 @@ impl Clustering {
             sigmaR += self.computeR(clusters);
         }
 
-        let dbindex = sigmaR / k as f64;
+        let dbindex = sigmaR / k as f32;
 
         return dbindex;
     }
 
-    fn computeR(mut self, clusters: Vec<Cluster>) -> f64 {
+    fn computeR(mut self, clusters: Vec<Cluster>) -> f32 {
         let listR = Vec::new();
 
         for (i, icluster) in clusters.iter().enumerate() {
@@ -80,17 +80,17 @@ impl Clustering {
             }
         }
 
-        let max = listR.iter().fold(f64::INFINITY, |a, &b| a.max(b.into()));
+        let max = listR.iter().fold(f32::INFINITY, |a, &b| a.max(b.into()));
         return max;
     }
 
-    fn computeRij(&mut self, icluster: &Cluster, jcluster: &Cluster) -> f64 {
-        let mij = self.minkowskiDistance(icluster.centroid, jcluster.centroid) as f64;
+    fn computeRij(&mut self, icluster: &Cluster, jcluster: &Cluster) -> f32 {
+        let mij = self.minkowskiDistance(&icluster.centroid, &jcluster.centroid);
         if mij == 0.0 {
             mij = 1e-10;
         }
 
-        let rij= (icluster.dispersion() + jcluster.dispersion()) as f64;
+        let rij= icluster.dispersion() + jcluster.dispersion();
         rij = rij / mij;
 
         return rij;
@@ -99,7 +99,7 @@ impl Clustering {
     pub fn calcChromosomesFit(&mut self) -> Generation {
         let kmax = self.kmax;
         let generation = self.generation;
-        let num_of_ind = self.generation.num_of_ind as usize;
+        let num_of_ind = self.generation.num_of_ind;
 
         for stream in generation.chromosomes.values() {
             for i in 0..num_of_ind {
@@ -108,7 +108,7 @@ impl Clustering {
 
                 let start_idx: usize;
                 for _ in 0..kmax {
-                    if stream[i].length > dim as u16 {
+                    if stream[i].length > dim {
                         start_idx = rand::thread_rng().gen_range(0..(stream[i].length as usize - dim));
                     } else {
                         start_idx = 0;
@@ -120,12 +120,12 @@ impl Clustering {
                     }
 
                     let centroid = Point {
-                        length: genes.len() as u8,
+                        length: genes.len(),
                         pattern_id: genes,
                         z: usize::MAX,
                     };
                     let cluster = Cluster {
-                        dim: dim as u8,
+                        dim: dim,
                         centroid: centroid,
                         points: Vec::new(),
                         distances: Vec::new(),
@@ -150,7 +150,7 @@ impl Clustering {
 
         let start_idx: usize;
         for _ in 0..kmax {
-            if childChromosome.length > dim as u16 {
+            if childChromosome.length > dim {
                 start_idx = rand::thread_rng().gen_range(0..(childChromosome.length as usize - dim));
             } else {
                 start_idx = 0;
@@ -162,12 +162,12 @@ impl Clustering {
             }
 
             let centroid = Point {
-                length: genes.len() as u8,
+                length: genes.len(),
                 pattern_id: genes,
                 z: usize::MAX,
             };
             let cluster = Cluster {
-                dim: dim as u8,
+                dim: dim,
                 centroid: centroid,
                 points: Vec::new(),
                 distances: Vec::new(),
@@ -191,7 +191,7 @@ impl Clustering {
 
         for z in data.indices() {
             let point = Point {
-                length: dim as u8,
+                length: dim,
                 pattern_id: *data.get(*z).unwrap(),
                 z: *z,
             };
@@ -199,17 +199,17 @@ impl Clustering {
             let disSet = Vec::new();
 
             for i in 0..kmax {
-                let dis = self.minkowskiDistance(point, clusters[i].centroid);
+                let dis = self.minkowskiDistance(&point, &clusters[i].centroid);
                 disSet.push(dis);
             }
 
-            clusters = self.findMin(disSet, clusters, point);
+            clusters = self.findMin(&disSet, &clusters, point);
         }
 
         return clusters;
     }
 
-    fn minkowskiDistance(&mut self, point1: Point, point2: Point) -> f32 {
+    fn minkowskiDistance(&mut self, point1: &Point, point2: &Point) -> f32 {
         let dim = self.dim;
         let p = 2.0;
         let d = 0.0;
@@ -223,15 +223,15 @@ impl Clustering {
         return mij;
     }
 
-    fn findMin(&mut self, dis_set: Vec<f32>, clusters: Vec<Cluster>, point: Point) -> Vec<Cluster> {
+    fn findMin(&mut self, dis_set: &Vec<f32>, clusters: &Vec<Cluster>, point: Point) -> Vec<Cluster> {
         let idx = dis_set.iter().position(|r| r == dis_set.iter().fold(&f32::INFINITY, |a, b| &a.min(*b))).unwrap();
         clusters[idx].points.push(point);
         clusters[idx].distances.push(dis_set.iter().fold(f32::INFINITY, |a, b| a.min(*b)));
 
-        return clusters;
+        return *clusters;
     }
 
-    pub fn printIBest(&mut self, iBest: Chromosome) {
+    pub fn printIBest(&mut self, iBest: &Chromosome) {
         let kmax = self.kmax;
         let dim = self.dim;
         let data = self.data;
@@ -239,7 +239,7 @@ impl Clustering {
 
         let start_idx: usize;
         for _ in 0..kmax {
-            if iBest.length > dim as u16 {
+            if iBest.length > dim {
                 start_idx = rand::thread_rng().gen_range(0..(iBest.length as usize - dim));
             } else {
                 start_idx = 0;
@@ -251,12 +251,12 @@ impl Clustering {
             }
 
             let centroid = Point {
-                length: genes.len() as u8,
+                length: genes.len(),
                 pattern_id: genes,
                 z: usize::MAX,
             };
             let cluster = Cluster {
-                dim: dim as u8,
+                dim: dim,
                 centroid: centroid,
                 points: Vec::new(),
                 distances: Vec::new(),
