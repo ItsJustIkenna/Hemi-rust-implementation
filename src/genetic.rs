@@ -16,7 +16,7 @@ pub struct Genetic<'a> {
 }
 
 impl<'a> Genetic<'a> {
-    pub fn geneticProcess(&mut self, mut generation: &Generation<'a>, deterministic: &'a HashMap<usize, &'a Vec<&'a Chromosome>>) -> (&Generation<'a>, usize) {
+    pub fn geneticProcess(&'a mut self, mut generation: &'a Generation<'a>, deterministic: &'a HashMap<usize, &'a Vec<&'a Chromosome>>) -> (&Generation<'a>, usize) {
         println!("------------Generation: {} -----------------", self.generationCount);
 
         //  ----------------------------------Information Sharing-----------------------
@@ -31,7 +31,7 @@ impl<'a> Genetic<'a> {
             //  ------------------------------Simple noise based selection--------------
 
             if self.generationCount > 0 {
-                stream = &self.selection(stream, &self.prevGeneration[&s]);
+                stream = self.selection(stream, &self.prevGeneration[&s]);
             }
             else {
                 continue;
@@ -77,7 +77,7 @@ impl<'a> Genetic<'a> {
         
     }
 
-    fn informationSharing(&mut self, generation: &Generation<'a>) -> &Generation<'a> {
+    fn informationSharing(&mut self, generation: &'a Generation<'a>) -> &'a Generation<'a> {
         let neighbors = Vec::new();
 
         for i in 0..generation.chromosomes.len() {
