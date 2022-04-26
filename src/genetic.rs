@@ -15,8 +15,8 @@ pub struct Genetic<'a> {
     pub prevGeneration: HashMap<usize, Vec<&'a Chromosome>>,
 }
 
-impl Genetic<'_> {
-    pub fn geneticProcess<'a>(&mut self, mut generation: &'a Generation, deterministic: &'a HashMap<usize, &Vec<&Chromosome>>) -> (&'a Generation, usize) {
+impl<'a> Genetic<'a> {
+    pub fn geneticProcess(&mut self, mut generation: &Generation<'a>, deterministic: &'a HashMap<usize, &'a Vec<&'a Chromosome>>) -> (&Generation<'a>, usize) {
         println!("------------Generation: {} -----------------", self.generationCount);
 
         //  ----------------------------------Information Sharing-----------------------
@@ -77,7 +77,7 @@ impl Genetic<'_> {
         
     }
 
-    fn informationSharing<'a>(&mut self, generation: &'a Generation) -> &'a Generation {
+    fn informationSharing(&mut self, generation: &Generation<'a>) -> &Generation<'a> {
         let neighbors = Vec::new();
 
         for i in 0..generation.chromosomes.len() {
@@ -94,7 +94,7 @@ impl Genetic<'_> {
         return generation;
     }
 
-    fn maxOfNeighbors<'a>(&mut self, neighbors: &'a Vec<&Chromosome>, i: usize) -> &'a Chromosome {
+    fn maxOfNeighbors(&mut self, neighbors: &'a Vec<&Chromosome>, i: usize) -> &'a Chromosome {
         let d = neighbors.len() - i;
         let p1: usize;
         if d >= 2 {
@@ -115,7 +115,7 @@ impl Genetic<'_> {
         return max_chromosome;
     }
 
-    fn selection<'a>(&mut self, stream: &Vec<&Chromosome>, prevStream: &Vec<&Chromosome>) -> &Vec<&Chromosome> {
+    fn selection(&mut self, stream: &'a Vec<&'a Chromosome>, prevStream: &'a Vec<&Chromosome>) -> &Vec<&'a Chromosome> {
         let num_of_ind = self.num_of_ind;
         let noise = rand::thread_rng().gen_range(0.0..1.0);
 
@@ -130,7 +130,7 @@ impl Genetic<'_> {
         return stream;
     }
 
-    fn crossover<'a>(&mut self, stream: &Vec<&Chromosome>, generation: &Generation) -> &Vec<&Chromosome> {
+    fn crossover(&mut self, stream: &'a Vec<&'a Chromosome>, generation: &'a Generation) -> &'a Vec<&'a Chromosome> {
         let dad = stream[0];
         let Fsum = 0.0;
 
@@ -208,7 +208,7 @@ impl Genetic<'_> {
         return stream;
     }
 
-    fn twinRemoval<'a>(&mut self, stream: &'a Vec<&Chromosome>) -> &Vec<&Chromosome> {
+    fn twinRemoval(&mut self, stream: &'a Vec<&Chromosome>) -> &'a Vec<&Chromosome> {
     
         for i in 0..stream.len() {
             
@@ -218,7 +218,7 @@ impl Genetic<'_> {
 
     }
 
-    fn mutation<'a>(&mut self, stream: &Vec<&Chromosome>) -> &Vec<&Chromosome> {
+    fn mutation(&mut self, stream: &'a Vec<&Chromosome>) -> &'a Vec<&Chromosome> {
         let k1 = 0.5;
         let k2 = 0.5;
 
@@ -258,7 +258,7 @@ impl Genetic<'_> {
         return stream;
     }
 
-    fn healthImprovement<'a>(&mut self, stream: &'a Vec<&Chromosome>, generation: &'a Generation, deterministic: &'a Vec<&Chromosome>) -> &Vec<&Chromosome> {
+    fn healthImprovement(&mut self, stream: &'a Vec<&'a Chromosome>, generation: &'a Generation, deterministic: &'a Vec<&'a Chromosome>) -> &Vec<&Chromosome> {
         let num_of_ind = self.num_of_ind;
         let twentyPercent = Vec::new();
 
@@ -296,7 +296,7 @@ impl Genetic<'_> {
         return stream;
     }
 
-    fn cleansing<'a>(&mut self, stream: &'a Vec<&Chromosome>, deterministic: &'a Vec<&Chromosome>) -> &'a Vec<&Chromosome> {
+    fn cleansing(&mut self, stream: &'a Vec<&'a Chromosome>, deterministic: &'a Vec<&Chromosome>) -> &'a Vec<&Chromosome> {
         let num_of_ind = self.num_of_ind;
 
         let mr: f32;
@@ -323,13 +323,13 @@ impl Genetic<'_> {
 
     fn doCleansing(
         &mut self,
-        chromosome: &Chromosome,
+        chromosome: &'a Chromosome,
         mn: f32,
         mx: f32,
         mr: f32,
-        deterministic: &Vec<&Chromosome>,
+        deterministic: &'a Vec<&'a Chromosome>,
     ) -> &Chromosome {
-        if !((chromosome.length as f32) >= mn) || !((chromosome.length as f32) <= mx) || !((chromosome.length as f32) > +mr) {
+        if !((chromosome.length as f32) >= mn) || !((chromosome.length as f32) <= mx) || !((chromosome.length as f32) > mr) {
             let new_chromosome = self.cloning(&chromosome, &deterministic);
             return new_chromosome;
         } else {
@@ -337,7 +337,7 @@ impl Genetic<'_> {
         }
     }
 
-    fn cloning<'a>(&mut self, sickChromosome: &'a Chromosome, deterministic: &'a Vec<&Chromosome>) -> &'a Chromosome {
+    fn cloning(&mut self, sickChromosome: &'a Chromosome, deterministic: &'a Vec<&Chromosome>) -> &'a Chromosome {
         let pclo = self.pclo;
         let die = rand::thread_rng().gen_range(0.0..1.0);
 
@@ -352,7 +352,7 @@ impl Genetic<'_> {
         }
     }
 
-    fn elitist<'a>(&mut self, stream: &'a Vec<&Chromosome>, prevStream: &'a Vec<&Chromosome>) -> &'a Vec<&Chromosome> {
+    fn elitist(&mut self, stream: &'a Vec<&'a Chromosome>, prevStream: &'a Vec<&'a Chromosome>) -> &'a Vec<&Chromosome> {
         let lastChromo = *stream.last().unwrap();
         let worstFitnessCurrent = lastChromo.fitness;
         let bestFitnessCurrent = stream[0].fitness;
